@@ -1,0 +1,35 @@
+---
+title: 'Predictive Analytics Exam Module 5, Section 4'
+
+---
+If you are using R 3.6.0 or later, the following command will ensure that the random number generator being used is the same as in prior versions of R. Because these modules were developed using R 3.5.0, output that depends on random numbers used the older generator. Running this code will have your output match that shown in the modules.
+
+
+```{r}
+# Run this chunk if using R 3.6.0 or later.
+RNGkind(sample.kind = "Rounding")
+```
+
+If you are using R 4.0.0 or later, the following command will ensure that read.csv() interprets variables whose values are characters as factor variables. This was the default behavior in prior versions of R. All code is written assuming such variables are factor variables.
+
+```{r}
+# Run this chunk if using R 4.0.0 or later. You may get what looks like an error message. It can be ignored.
+options(stringsAsFactors = TRUE)
+```
+
+Run CHUNK 1 to load the term life dataset and create a set of scatterplots.
+
+```{r echo = FALSE}
+# CHUNK 1
+term.life <- read.csv("TermLife.csv")
+pairs(term.life[, c(4, 1, 6, 10)])
+```
+
+Run CHUNK 2 to work with log transforms.
+
+```{r}
+# CHUNK 2
+term.life$log_face <- log(term.life$FACE)
+term.life$log_income <- log(term.life$INCOME)
+pairs(term.life[, c(4, 12, 6, 13)])
+```
