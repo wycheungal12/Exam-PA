@@ -1,0 +1,177 @@
+---
+title: "Predictive Analytics Exam Module 6, Section 1"
+output:
+
+---
+If you are using R 3.6.0 or later, the following command will ensure that the random number generator being used is the same as in prior versions of R. Because these modules were developed using R 3.5.0, output that depends on random numbers used the older generator. Running this code will have your output match that shown in the modules.
+
+
+```{r}
+# Run this chunk if using R 3.6.0 or later.
+RNGkind(sample.kind = "Rounding")
+```
+
+If you are using R 4.0.0 or later, the following command will ensure that read.csv() interprets variables whose values are characters as factor variables. This was the default behavior in prior versions of R. All code is written assuming such variables are factor variables.
+
+```{r}
+# Run this chunk if using R 4.0.0 or later. You may get what looks like an error message. It can be ignored.
+options(stringsAsFactors = TRUE)
+```
+
+Run CHUNK 1 to load some packages.
+
+```{r setup}
+# CHUNK 1
+library(ggplot2)
+library(gridExtra)
+```
+
+Run CHUNK 2 to load and plot the Galton data.
+
+```{r galton plot}
+# CHUNK 2
+galton <- read.csv("galton.csv")
+set.seed(1000)
+
+ggplot(galton, aes(x = jitter(parent, 5), y = jitter(child, 5))) +
+  geom_point() +
+  labs(x = "Parents' Height", y = "Child's Height")
+```
+
+Run CHUNK 3 to plot the regression line.
+
+```{r}
+# CHUNK 3
+set.seed(1000)
+ggplot(galton, aes(x = jitter(parent, 5), y = jitter(child, 5))) +
+  geom_point() +
+  labs(x = "Parents' Height", y = "Child's Height") +
+  stat_smooth(method = "lm", col = "red")
+```
+
+Run CHUNK 4 to formally fit the line.
+
+```{r model_summary}
+# CHUNK 4
+lm_galton <- lm(child ~ parent, data = galton)
+summary(lm_galton)
+```
+  
+Use CHUNK 5 to work on Exercise 6.1.1.
+
+```{r Answer 6.1.1}
+# CHUNK 5
+
+```
+
+CHUNK 6 has a solution. Note the use of the predict function. For the most part you can fit any model and then use the predict function to obtain predictions using that model. R will be able to figure out the type of model and predict accordingly. If the "newdata" argument is missing the prediction will be for the same values that were in the dataset used to fit the model. For some models there is more than one option for what will be predicted. In the case of ordinary least squares there is no need to specify the type, but that will not always be the case.
+
+```{r 6.1.1 solution}
+# CHUNK 6
+b0 <- coef(lm_galton)[1]
+b1 <- coef(lm_galton)[2]
+x <- 68
+
+# Manual calculation of child height.
+yhat <- b0 + b1 * x
+print(yhat)
+
+# Using predict function.
+yhat2 <- predict(lm_galton, newdata = data.frame(parent = 68), type = "response")
+print(yhat2)
+```
+
+Run CHUNK 7 to load and set up the auto claim dataset.
+
+```{r}
+# CHUNK 7
+
+AutoClaim <- read.csv("AutoClaim.csv")
+
+# We will only use GENDER, AGE, BLUEBOOK, and CLM_AMT for demonstration.
+AutoClaim_sub <- subset(AutoClaim, select = c("GENDER", "AGE", "BLUEBOOK", "CLM_AMT"))
+
+# Create age bands and then remove age.
+AutoClaim_sub$AGE_BAND <- cut(x = AutoClaim_sub$AGE, breaks = c(0, 25, 35, 45, 55, 65, 85))
+AutoClaim_sub$AGE <- NULL
+
+# Select only cases where CLM_AMT is positive.
+AutoClaim_sub <- AutoClaim_sub[AutoClaim$CLM_AMT > 0, ]
+
+head(AutoClaim_sub)
+```
+
+Run CHUNK 8 to set up the model matrix and view the first 6 rows. Note that there is no variable for the age band from 0 to 25. This function understands that when creating indicator variables one of the levels must be left off.
+
+```{r}
+# CHUNK 8
+MM <- model.matrix(CLM_AMT ~ GENDER + AGE_BAND + BLUEBOOK, data = AutoClaim_sub)
+MM[1:6, ]
+```
+
+Run CHUNK 9 to obtain the parameter estimates by matrix algebra.
+
+```{r}
+# CHUNK 9
+X <- MM
+Y <- AutoClaim_sub$CLM_AMT
+
+# R does not have a matrix inverse function, but solve() performs this task.
+Beta <- solve(t(X) %*% X) %*% (t(X) %*% Y)
+Beta
+```
+
+Run CHUNK 10 to obtain the least squares estimates.
+
+```{r lm_model}
+# CHUNK 10
+linear.model <- lm(CLM_AMT ~ GENDER + AGE_BAND + BLUEBOOK, data = AutoClaim_sub)
+linear.model
+```
+
+Run CHUNK 11 to see a visualization how conditional normal distributions do not imply an aggregate normal distribution.
+
+```{r }
+# CHUNK 11
+set.seed(42)
+
+f <- rnorm(n = 500, mean = 1500, sd = 400)
+m <- rnorm(n = 500, mean = 3000, sd = 400)
+gend <- data.frame(CLM_AMT = f, SEX = "F")
+gend <- rbind(gend, data.frame(CLM_AMT = m, SEX = "M"))
+
+p1 <- ggplot(gend, aes(x = CLM_AMT)) +
+  geom_freqpoly(position = "identity", col = "black") +
+  ggtitle(label = "Overall distribution of CLM_AMT")
+
+p2 <- ggplot(gend, aes(x = CLM_AMT, fill = SEX)) +
+  geom_freqpoly(position = "identity", col = "black") +
+  ggtitle(label = "CLM_AMT distribution by SEX")
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+Use CHUNK 12 to test the assumptions of ordinary least squares for Exercise 6.1.2. It should be clear that they do not hold, particularly the assumption that the residuals have a normal distribution.
+
+```{r}
+# CHUNK 12
+
+# Run the regression.
+model <- lm(CLM_AMT ~ GENDER + AGE_BAND + BLUEBOOK, data = AutoClaim_sub)
+
+# Check the mean of the residuals.
+mean(model$residuals)
+
+# Check the residuals for constant variance. Not all four plots relate to this assumption.
+par(mfrow = c(2, 2))
+plot(model)
+
+# Check that the residuals and the predictor variables are uncorrelated.
+cor.test(AutoClaim_sub$BLUEBOOK, model$residuals) # Run this for each your predictor variables
+
+# Check that the residuals have a normal distribution.
+# One check is a Q-Q plot, which appears in the upper right corner of the plots made when checking for constant variance. Another option is to make a histogram of the residuals.
+resid <- data.frame(model$residuals)
+ggplot(resid, aes(x = model.residuals)) +
+  geom_histogram(position = "identity", col = "black")
+```
